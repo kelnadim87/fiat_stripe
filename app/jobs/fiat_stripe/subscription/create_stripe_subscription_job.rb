@@ -5,9 +5,9 @@ class FiatStripe::Subscription::CreateStripeSubscriptionJob < ApplicationJob
 
     # Find the Stripe pricing plan for $0/mo on the Monthly Subscription product
     if Rails.env.development?
-      plan = FiatStripe.live_default_plan_id.to_s
-    elsif Rails.env.production?
       plan = FiatStripe.test_default_plan_id.to_s
+    elsif Rails.env.production?
+      plan = FiatStripe.live_default_plan_id.to_s
     end
 
     stripe_subscription = Stripe::Subscription.create(
