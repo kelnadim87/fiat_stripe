@@ -12,7 +12,6 @@ module Stripeable
       #:email => @agency.email
     )
     self.update_attributes(stripe_customer_id: customer.id)
-    # Subscription.create(parish_id: parish.id)
   end
 
   def update_stripe

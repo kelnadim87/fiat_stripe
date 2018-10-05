@@ -1,5 +1,6 @@
 require "fiat_stripe/engine"
 
 module FiatStripe
-  # Your code goes here...
+  mattr_accessor :live_default_plan_id
+  mattr_accessor :test_default_plan_id
 end

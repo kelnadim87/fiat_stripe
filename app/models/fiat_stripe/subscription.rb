@@ -1,9 +1,13 @@
 module FiatStripe
   class Subscription < ApplicationRecord
-    # include Tokenable
+    include Tokenable
+
+    belongs_to :subscriber, polymorphic: true
+
+    validates :subscriber, presence: true
 
     after_touch :save
-    after_commit -> { Subscription::CreateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :create
+    after_commit -> { FiatStripe::Subscription::CreateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :create
     # after_commit -> { Subscription::UpdateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :update, if: :stripe_pricing_inaccurate? # This runs when an associated support plan is updated, too, b/c of touch
     # after_commit -> { Subscription::CancelStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self.stripe_subscription_id) }, on: :destroy
 

@@ -20,7 +20,19 @@ Or install it yourself as:
 
 ## Setup
 
-You'll need to configure the `stripe` and `stripe_event` gems like you would normally. You'll also need to make sure that any classes in your application that will connect to Stripe customers have the following database fields: `name`, `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
+You'll need to configure the `stripe` and `stripe_event` gems like you would normally. You'll also need to make sure that any classes in your application that will connect as Stripe customers have the following database fields: `name`, `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
+
+Create an initializer at `config/initializers/fiat_stripe.rb` to set some global configs:
+
+```ruby
+FiatStripe.live_default_plan_id = "plan_id"
+FiatStripe.test_default_plan_id = "plan_id"
+```
+
+Install the migrations in your app root folder by running:
+
+    $ rails fiat_stripe:install:migrations
+    $ rake db:migrate
 
 To include all the helpers, add this line in your `ApplicationController`:
 
