@@ -20,7 +20,13 @@ Or install it yourself as:
 
 ## Setup
 
-You'll need to configure the `stripe` and `stripe_event` gems like you would normally. You'll also need to make sure that any classes in your application that will be Stripe customers have the following database fields: `stripe_customer_id` and `stripe_card_token`.
+You'll need to configure the `stripe` and `stripe_event` gems like you would normally. You'll also need to make sure that any classes in your application that will connect to Stripe customers have the following database fields: `name`, `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
+
+To include all the helpers, add this line in your `ApplicationController`:
+
+```ruby
+helper FiatStripe::Engine.helpers
+```
 
 ### Stripeable
 

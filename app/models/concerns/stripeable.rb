@@ -2,7 +2,32 @@ module Stripeable
   extend ActiveSupport::Concern
 
   included do
+    after_commit :create_stripe_customer_id, on: :create
     before_commit :update_stripe, on: :update
+  end
+
+  def create_stripe_customer_id
+    customer = Stripe::Customer.create(
+      :description => self.name
+      #:email => @agency.email
+    )
+    self.update_attributes(stripe_customer_id: customer.id)
+    # Subscription.create(parish_id: parish.id)
+  end
+
+  def update_stripe
+    # TODO: Update this method to work w/ bank accounts
+    if self.saved_change_to_stripe_card_token? && self.stripe_card_token? && self.stripe_customer_id?
+      token = self.stripe_card_token
+      customer = Stripe::Customer.retrieve(self.stripe_customer_id)
+      customer.sources.create(source: self.stripe_card_token)
+      customer.save
+    elsif saved_change_to_remove_card? && remove_card && stripe_customer_id
+      customer = Stripe::Customer.retrieve(self.stripe_customer_id)
+      customer.sources.retrieve(customer.sources.data.first.id).delete
+      customer.save
+      self.update_attributes(remove_card: nil, stripe_card_token: nil)
+    end
   end
 
   def has_source?
@@ -46,21 +71,6 @@ module Stripeable
       true
     else
       false
-    end
-  end
-
-  def update_stripe
-    # TODO: Update this method to work w/ bank accounts
-    if self.saved_change_to_stripe_card_token? && self.stripe_card_token? && self.stripe_customer_id?
-      token = self.stripe_card_token
-      customer = Stripe::Customer.retrieve(self.stripe_customer_id)
-      customer.sources.create(source: self.stripe_card_token)
-      customer.save
-    elsif saved_change_to_remove_card? && remove_card && stripe_customer_id
-      customer = Stripe::Customer.retrieve(self.stripe_customer_id)
-      customer.sources.retrieve(customer.sources.data.first.id).delete
-      customer.save
-      self.update_attributes(remove_card: nil, stripe_card_token: nil)
     end
   end
 
