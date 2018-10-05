@@ -44,9 +44,25 @@ helper FiatStripe::Engine.helpers
 
 The `Stripeable` concern for models does the work of ensuring a class is able to act as a Stripe customer. Call it using `include Stripeable`. You'll also need to make sure that any classes in your application that will connect as Stripe customers have the following database fields: `name`, `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
 
+Here is a sample migration generation for this:
+
+    $ rails g migration add_stripe_fields_to_xyz name:string stripe_customer_id:string stripe_card_token:string remove_card:boolean
+
 ### Subscriptions
 
 Subscriptions handle the records and logic for controlling Stripe subscriptions in your app. And they connect directly to Stripe subscriptions to actively manage pricing.
+
+You can choose how to initiate a subscription. They're not automatically created when a new Stripe customer ID is created. So, for example, on a `Stripeable` class, you could run:
+
+```ruby
+after_commit :create_subscription, on: :create
+
+def create_subscription
+  FiatStripe::Subscription.create(subscriber_type: "ClassName", subscriber_id: self.id)
+end
+```
+
+Or you could manually create subscriptions using a separate controller action, etc.
 
 Extend the `Subscription` model to include `rate` logic by adding a file at `app/decorators/models/fiat_stripe/subscription_decorator.rb`:
 
@@ -55,6 +71,7 @@ FiatStripe::Subscription.class_eval do
   def rate
     # Put logic here to calculate rate per payment period
     # Note: monthly vs annual payment periods are determined by the plan_id that's active
+    # E.g., self.subscriber.rate
   end
 end
 ```
