@@ -8,8 +8,8 @@ module FiatStripe
 
     after_touch :save
     after_commit -> { FiatStripe::Subscription::CreateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :create
-    # after_commit -> { Subscription::UpdateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :update, if: :stripe_pricing_inaccurate? # This runs when an associated support plan is updated, too, b/c of touch
-    # after_commit -> { Subscription::CancelStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self.stripe_subscription_id) }, on: :destroy
+    after_commit -> { FiatStripe::Subscription::UpdateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :update, if: :is_stripe_pricing_inaccurate? # This runs when an associated support plan is updated, too, b/c of touch
+    after_commit -> { FiatStripe::Subscription::CancelStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self.stripe_subscription_id) }, on: :destroy
 
     def stripe_subscription
       if self.stripe_subscription_id?
@@ -31,9 +31,9 @@ module FiatStripe
       end
     end
 
-    def stripe_pricing_inaccurate?
+    def is_stripe_pricing_inaccurate?
       if self.stripe_subscription
-        if self.stripe_subscription.items.first.plan.amount != (self.monthly_rate * 100)
+        if self.stripe_subscription.items.first.plan.amount != (self.rate * 100)
           true
         else
           false

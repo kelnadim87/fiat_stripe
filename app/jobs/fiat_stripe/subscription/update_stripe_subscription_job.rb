@@ -1,4 +1,4 @@
-class Subscription::UpdateStripeSubscriptionJob < ApplicationJob
+class FiatStripe::Subscription::UpdateStripeSubscriptionJob < ApplicationJob
   queue_as :default
 
   def perform(subscription)

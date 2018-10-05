@@ -1,4 +1,4 @@
-class Subscription::CancelStripeSubscriptionJob < ApplicationJob
+class FiatStripe::Subscription::CancelStripeSubscriptionJob < ApplicationJob
   queue_as :default
 
   def perform(stripe_subscription_id)
