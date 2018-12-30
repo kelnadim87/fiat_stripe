@@ -29,9 +29,8 @@ FiatStripe.live_default_plan_id = "plan_id"
 FiatStripe.test_default_plan_id = "plan_id"
 ```
 
-Install the migrations in your app root folder by running:
+Run the migrations from the engine using:
 
-    $ rails fiat_stripe:install:migrations
     $ rake db:migrate
 
 To include all the helpers, add this line in your `ApplicationController`:
