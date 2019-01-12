@@ -20,7 +20,21 @@ Or install it yourself as:
 
 ## Setup
 
-You'll need to configure the `stripe` and `stripe_event` gems like normal.
+You'll need to configure the `stripe` and `stripe_event` gems like normal. Here's an example of how you can write `config/initializers/stripe.rb` to be flexible for testing:
+
+```ruby
+if Rails.env.development?
+  Rails.configuration.stripe = {
+    publishable_key: Rails.application.credentials.development[:stripe][:publishable_key],
+    secret_key: Rails.application.credentials.development[:stripe][:secret_key]
+  }
+elsif Rails.env.production?
+  Rails.configuration.stripe = {
+    publishable_key: Rails.application.credentials.production[:stripe][:publishable_key],
+    secret_key: Rails.application.credentials.production[:stripe][:secret_key]
+  }
+end
+```
 
 Create an initializer at `config/initializers/fiat_stripe.rb` to set some global configs:
 
@@ -41,11 +55,23 @@ helper FiatStripe::Engine.helpers
 
 ### Stripeable
 
-The `Stripeable` concern for models does the work of ensuring a class is able to act as a Stripe customer. Call it using `include Stripeable`. You'll also need to make sure that any classes in your application that will connect as Stripe customers have the following database fields: `name`, `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
+The `Stripeable` concern for models does the work of ensuring a class is able to act as a Stripe customer. Call it using `include Stripeable`. You'll also need to make sure that any classes in your application that will connect as Stripe customers have the following database fields: `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
 
 Here is a sample migration generation for this:
 
-    $ rails g migration add_stripe_fields_to_xyz name:string stripe_customer_id:string stripe_card_token:string remove_card:boolean
+    $ rails g migration add_stripe_fields_to_xyz stripe_customer_id:string stripe_card_token:string remove_card:boolean
+
+Per Stripe's (recommendations)[https://stripe.com/docs/connect/authentication#authentication-via-api-keys], an API key is passed with each request. Per-request authentication requires you to set the relevant API key on the model that you want to use as `stripe_api_key`. For example, you could easily set the key for one model to listen to the application credentials: `Rails.configuration.stripe[:secret_key]`; and the key for another model as pursuant to the first (in this case, through a `belongs_to` relationship):
+
+```ruby
+def stripe_api_key
+  if Rails.env.production?
+    self.organization.stripe_live_secret_key
+  else
+    self.organization.stripe_test_secret_key
+  end
+end
+```
 
 ### Subscriptions
 
