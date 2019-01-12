@@ -1,6 +1,6 @@
-class CreateFiatStripeSubscriptions < ActiveRecord::Migration[5.2]
+class CreateFiStripeSubscriptions < ActiveRecord::Migration[5.2]
   def change
-    create_table :fiat_stripe_subscriptions do |t|
+    create_table :fi_stripe_subscriptions do |t|
       t.string :subscriber_type
       t.integer :subscriber_id
       t.string :stripe_subscription_id

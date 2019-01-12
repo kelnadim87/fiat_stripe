@@ -2,6 +2,8 @@ module FiatStripe
   class Subscription < ApplicationRecord
     include Tokenable
 
+    self.table_name = "fi_stripe_subscriptions"
+
     belongs_to :subscriber, polymorphic: true
 
     validates :subscriber, presence: true
@@ -12,11 +14,11 @@ module FiatStripe
     after_commit -> { FiatStripe::Subscription::CancelStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self.stripe_subscription_id) }, on: :destroy
 
     def stripe_subscription
-      if self.stripe_subscription_id?
-        Rails.cache.fetch("#{cache_key}/stripe_subscription", expires_in: 30.days) do
-          subscription = Stripe::Subscription.retrieve(self.stripe_subscription_id)
-        end
-      end
+      # if self.stripe_subscription_id?
+      #   Rails.cache.fetch("#{cache_key}/stripe_subscription", expires_in: 30.days) do
+      #     subscription = Stripe::Subscription.retrieve({id: self.stripe_subscription_id}, api_key: self.stripe_api_key)
+      #   end
+      # end
     end
 
     def stripe_plan
