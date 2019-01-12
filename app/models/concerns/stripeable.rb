@@ -109,4 +109,10 @@ module Stripeable
       end
     end
   end
+
+  def past_payments
+    if self.stripe_customer_id?
+      Stripe::Charge.list({customer: self.stripe_customer_id}, api_key: self.stripe_api_key)
+    end
+  end
 end

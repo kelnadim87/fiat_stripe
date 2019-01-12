@@ -22,9 +22,10 @@ module FiatStripe
 
       charge = Stripe::Charge.create({
         customer: params[:customer_id], # Ideally, this would be further encrypted somehow
-        amount: 999,
+        amount: (params[:one_time_payment][:amount].to_d * 100).to_i,
         currency: 'usd',
-        description: 'Example charge',
+        description: params[:one_time_payment][:description],
+        receipt_email: params[:email],
         # source: token,
         },
         api_key: object_class.find(object_id).stripe_api_key
