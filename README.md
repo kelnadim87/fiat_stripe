@@ -1,24 +1,18 @@
 # Fiat Stripe
 
-This gem is designed to be used by Fiat Insight developers on Rails projects that need to connect paying entities with Stripe.
+This engine is designed to be used by [@fiatinsight](https://fiatinsight.com) developers on Rails projects that need to connect paying entities with Stripe in a flexible way.
 
-## Installation
+## Getting started
 
-Add this line to your application's Gemfile:
+Add this line to your application's `Gemfile`:
 
 ```ruby
 gem 'fiat_stripe'
 ```
 
-And then execute:
+Then `bundle` and run the required migrations directly by typing:
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install fiat_stripe
-
-## Setup
+    $ rake db:migrate
 
 You'll need to configure the `stripe` and `stripe_event` gems like normal. Here's an example of how you can write `config/initializers/stripe.rb` to be flexible for testing:
 
@@ -36,16 +30,12 @@ elsif Rails.env.production?
 end
 ```
 
-Create an initializer at `config/initializers/fiat_stripe.rb` to set some global configs:
+Create an initializer at `config/initializers/fiat_stripe.rb` to set some required global variables:
 
 ```ruby
 FiatStripe.live_default_plan_id = "plan_id"
 FiatStripe.test_default_plan_id = "plan_id"
 ```
-
-Run the migrations from the engine using:
-
-    $ rake db:migrate
 
 To include all the helpers, add this line in your `ApplicationController`:
 
@@ -53,15 +43,17 @@ To include all the helpers, add this line in your `ApplicationController`:
 helper FiatStripe::Engine.helpers
 ```
 
+## Usage
+
 ### Stripeable
 
-The `Stripeable` concern for models does the work of ensuring a class is able to act as a Stripe customer. Call it using `include Stripeable`. You'll also need to make sure that any classes in your application that will connect as Stripe customers have the following database fields: `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
+The [`Stripeable`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/models/concerns/stripeable.rb) concern for models does the work of ensuring a class is able to act as a Stripe customer. Call it using `include Stripeable`. You'll also need to make sure that any classes in your application that will connect as Stripe customers have the following database fields: `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
 
 Here is a sample migration generation for this:
 
     $ rails g migration add_stripe_fields_to_xyz stripe_customer_id:string stripe_card_token:string remove_card:boolean
 
-Per Stripe's (recommendations)[https://stripe.com/docs/connect/authentication#authentication-via-api-keys], an API key is passed with each request. Per-request authentication requires you to set the relevant API key on the model that you want to use as `stripe_api_key`. For example, you could easily set the key for one model to listen to the application credentials: `Rails.configuration.stripe[:secret_key]`; and the key for another model as pursuant to the first (in this case, through a `belongs_to` relationship):
+Per (Stripe's recommendations)[https://stripe.com/docs/connect/authentication#authentication-via-api-keys], an API key is passed with each request. Per-request authentication requires you to set the relevant API key on the model that you want to use as `stripe_api_key`. For example, you could easily set the key for one model to listen to the application credentials: `Rails.configuration.stripe[:secret_key]`; and the key for another model as pursuant to the first (in this case, through a `belongs_to` relationship):
 
 ```ruby
 def stripe_api_key
