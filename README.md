@@ -10,10 +10,6 @@ Add this line to your application's `Gemfile`:
 gem 'fiat_stripe'
 ```
 
-Then `bundle` and run the required migrations directly by typing:
-
-    $ rake db:migrate
-
 You'll need to configure the `stripe` and `stripe_event` gems like normal. Here's an example of how you can write `config/initializers/stripe.rb` to be flexible for testing:
 
 ```ruby
