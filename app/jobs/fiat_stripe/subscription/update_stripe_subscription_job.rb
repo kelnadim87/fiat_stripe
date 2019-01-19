@@ -6,7 +6,7 @@ class FiatStripe::Subscription::UpdateStripeSubscriptionJob < ApplicationJob
     if subscribable.subscription
       product = subscribable.stripe_product
 
-      correct_plan = Stripe::Plan.list({ product: product, amount: (subscription.subscription_monthly_rate * 100) }, api_key: subscribable.stripe_api_key).first
+      correct_plan = Stripe::Plan.list({ product: product, amount: (subscribable.subscription_monthly_rate * 100) }, api_key: subscribable.stripe_api_key).first
 
       if correct_plan
         item = subscribable.subscription.items.first
