@@ -1,9 +1,9 @@
 class FiatStripe::Subscription::CancelStripeSubscriptionJob < ApplicationJob
   queue_as :default
 
-  def perform(stripe_subscription_id)
-    if stripe_subscription_id
-      sub = Stripe::Subscription.retrieve(stripe_subscription_id)
+  def perform(subscription)
+    if subscription
+      sub = Stripe::Subscription.retrieve({ id: subscription.id }, api_key: subscribable.stripe_api_key)
       sub.delete
     end
   end

@@ -1,25 +1,28 @@
 class FiatStripe::Subscription::UpdateStripeSubscriptionJob < ApplicationJob
   queue_as :default
 
-  def perform(subscription)
-    if subscription.stripe_subscription_id?
-      product = subscription.stripe_product
+  def perform(subscribable)
 
-      correct_plan = Stripe::Plan.list(product: product, amount: (subscription.monthly_rate * 100)).first
+    if subscribable.subscription
+      product = subscribable.stripe_product
+
+      correct_plan = Stripe::Plan.list({ product: product, amount: (subscription.subscription_monthly_rate * 100) }, api_key: subscribable.stripe_api_key).first
 
       if correct_plan
-        item = subscription.stripe_subscription.items.first
+        item = subscribable.subscription.items.first
         item.plan = correct_plan.id
         item.save
       else
         new_plan = Stripe::Plan.create(
-          amount: subscription.monthly_rate * 100,
-          interval: "month",
-          product: product,
-          currency: "usd",
-          nickname: "$#{subscription.monthly_rate}/mo"
+          { amount: subscribable.subscription_monthly_rate * 100,
+            interval: "month",
+            product: product,
+            currency: "usd",
+            nickname: "$#{subscribable.subscription_monthly_rate}/mo"
+          },
+          api_key: subscribable.stripe_api_key
         )
-        item = subscription.stripe_subscription.items.first
+        item = subscribable.subscription.items.first
         item.plan = new_plan.id
         item.save
       end

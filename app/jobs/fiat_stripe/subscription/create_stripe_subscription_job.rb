@@ -1,7 +1,7 @@
 class FiatStripe::Subscription::CreateStripeSubscriptionJob < ApplicationJob
   queue_as :default
 
-  def perform(subscription)
+  def perform(subscribable)
 
     # Find the Stripe pricing plan for $0/mo on the Monthly Subscription product
     if Rails.env.development?
@@ -11,14 +11,13 @@ class FiatStripe::Subscription::CreateStripeSubscriptionJob < ApplicationJob
     end
 
     stripe_subscription = Stripe::Subscription.create(
-      customer: subscription.subscriber.stripe_customer_id,
-      trial_period_days: 14,
-      items: [
-        {
-          plan: plan
-        }
-      ]
+      { customer: subscribable.stripe_customer_id,
+        trial_period_days: FiatStripe.trial_period_days,
+        items: [
+          { plan: plan }
+        ]
+      },
+      api_key: subscribable.stripe_api_key
     )
-    subscription.update_attributes(stripe_subscription_id: stripe_subscription.id)
   end
 end
