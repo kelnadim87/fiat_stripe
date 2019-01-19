@@ -35,9 +35,16 @@ Create an initializer at `config/initializers/fiat_stripe.rb` to set some requir
 ```ruby
 FiatStripe.live_default_plan_id = "plan_id"
 FiatStripe.test_default_plan_id = "plan_id"
+FiatStripe.trial_period_days = 0
 ```
 
-To include all the helpers, add this line in your `ApplicationController`:
+Then mount the engine in your `routes.rb` file (either at a top level or within a namespace):
+
+```ruby
+mount FiatStripe::Engine => "/fiat_stripe", as: "fiat_stripe"
+```
+
+To include all the [helpers](https://github.com/fiatinsight/fiat_stripe/tree/master/app/helpers), add this line in your `ApplicationController`:
 
 ```ruby
 helper FiatStripe::Engine.helpers
@@ -49,11 +56,11 @@ helper FiatStripe::Engine.helpers
 
 The [`Stripeable`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/models/concerns/stripeable.rb) concern for models does the work of ensuring a class is able to act as a Stripe customer. Call it using `include Stripeable`. You'll also need to make sure that any classes in your application that will connect as Stripe customers have the following database fields: `stripe_customer_id`, `stripe_card_token`, and `remove_card`.
 
-Here is a sample migration generation for this:
+Here's a sample migration for this:
 
     $ rails g migration add_stripe_fields_to_xyz stripe_customer_id:string stripe_card_token:string remove_card:boolean
 
-Per (Stripe's recommendations)[https://stripe.com/docs/connect/authentication#authentication-via-api-keys], an API key is passed with each request. Per-request authentication requires you to set the relevant API key on the model that you want to use as `stripe_api_key`. For example, you could easily set the key for one model to listen to the application credentials: `Rails.configuration.stripe[:secret_key]`; and the key for another model as pursuant to the first (in this case, through a `belongs_to` relationship):
+Per [Stripe's recommendations](https://stripe.com/docs/connect/authentication#authentication-via-api-keys), this engine passes an API key with each request. Per-request authentication requires you to set the relevant API key on the model that you want to use in a method called `stripe_api_key`. For example, you could easily set the key for one model to listen to the application credentials: `Rails.configuration.stripe[:secret_key]`; and the key for another model as pursuant to the first (in this case, through a `belongs_to` relationship):
 
 ```ruby
 def stripe_api_key
@@ -65,31 +72,53 @@ def stripe_api_key
 end
 ```
 
-### Subscriptions
+### Subscribable
 
-Subscriptions handle the records and logic for controlling Stripe subscriptions in your app. And they connect directly to Stripe subscriptions to actively manage pricing.
+The [`Subscribable`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/models/concerns/subscribable.rb) concern can be included on any model for which you want to generate and manage a subscription. You can invoke jobs to create, update, and destroy Stripe subscriptions directly from your `Subscribable` model's callback cycle.
 
-You can choose how to initiate a subscription. They're not automatically created when a new Stripe customer ID is created. So, for example, on a `Stripeable` class, you could run:
+#### Creating a subscription
+
+To create a subscription, include:
 
 ```ruby
-after_commit :create_subscription, on: :create
-
-def create_subscription
-  FiatStripe::Subscription.create(subscriber_type: "ClassName", subscriber_id: self.id)
-end
+after_commit -> { FiatStripe::Subscription::CreateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :create
 ```
 
-Or you could manually create subscriptions using a separate controller action, etc.
+This invokes the [`CreateStripeSubscriptionJob`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/jobs/fiat_stripe/subscription/create_stripe_subscription_job.rb), which creates a new subscription with the environment-specific plan ID you set in your initializer.
 
-Extend the `Subscription` model to include `rate` logic by adding a file at `app/decorators/models/fiat_stripe/subscription_decorator.rb`:
+> Hint: Creating a plan for $0/mo as a baseline for creating a new subscription is helpful, so that you can instantiate the subscription prior to setting a final rate.
+
+#### Updating a subscription
+
+To update a subscription, call [`UpdateStripeSubscriptionJob`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/jobs/fiat_stripe/subscription/update_stripe_subscription_job.rb) by using:
 
 ```ruby
-FiatStripe::Subscription.class_eval do
-  def rate
-    # Put logic here to calculate rate per payment period
-    # Note: monthly vs annual payment periods are determined by the plan_id that's active
-    # E.g., self.subscriber.rate
-  end
+after_commit -> { FiatStripe::Subscription::UpdateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :update, if: :is_stripe_pricing_inaccurate?
+```
+
+`:is_stripe_pricing_inaccurate?` is a method available via `Subscribable` that checks the subscription plan against a model's `subscription_monthly_rate` method. This is set _on your model_ in the main application to provide granular control for dynamic pricing outside of the engine.
+
+#### Cancelling a subscription
+
+To cancel a subscription, hit [`CancelStripeSubscriptionJob`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/jobs/fiat_stripe/subscription/cancel_stripe_subscription_job.rb) by putting:
+
+```ruby
+after_commit -> { FiatStripe::Subscription::CancelStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self.subscription) }, on: :destroy
+```
+
+> Note: The argument to pass, here, is the subscription itself, not the `Subscribable` instance.
+
+### Individual Stripe actions
+
+The [`StripeController`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/controllers/fiat_stripe/stripe_controller.rb) provides actions for things like creating a Stripe customer ID, transacting a one-time payment, etc.
+
+For example, a one-time payment form could be set up like this:
+
+```ruby
+= simple_form_for :one_time_payment, url: fiat_stripe.one_time_payment_stripe_index_path(object_class: "Organization", object_id: @organization.id, customer_id: @organization.stripe_customer_id, receipt_email: @organization.email) do |f|
+  = f.input :amount
+  = f.input :description
+  = f.button :button, "Submit", type: :submit, class: 'btn', data: { confirm: "Are you sure you want to complete this one-time payment?" }
 end
 ```
 
