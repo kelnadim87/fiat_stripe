@@ -1,6 +1,6 @@
 # Fiat Stripe
 
-> Currently installed on [Parish.es](https://github.com/fiatinsight/parish-app) and [BrokrQuotes](https://github.com/fiatinsight/brokrquotes/).
+> Currently installed on [Parish.es](https://github.com/fiatinsight/parish-app), [CatholicStock](https://github.com/fiatinsight/catholic-stock), and [BrokrQuotes](https://github.com/fiatinsight/brokrquotes/).
 
 This engine is designed to be used by [@fiatinsight](https://fiatinsight.com) developers on Rails projects that need to connect paying entities with Stripe in a flexible way.
 
