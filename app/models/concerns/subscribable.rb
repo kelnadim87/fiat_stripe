@@ -6,9 +6,9 @@ module Subscribable
   # end
 
   def subscription
-    # Rails.cache.fetch("#{cache_key}/subscription", expires_in: 30.days) do
+    Rails.cache.fetch("#{cache_key}/subscription", expires_in: 30.days) do
       Stripe::Customer.retrieve({ id: self.stripe_customer_id }, api_key: self.stripe_api_key).subscriptions.first
-    # end
+    end
   end
 
   def stripe_plan
