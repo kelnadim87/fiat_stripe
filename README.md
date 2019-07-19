@@ -12,7 +12,7 @@ Add this line to your application's `Gemfile`:
 gem 'fiat_stripe'
 ```
 
-You'll need to configure the `stripe` and `stripe_event` gems like normal. Here's an example of how you can write a flexible `config/initializers/stripe.rb` file:
+You'll need to configure the `stripe` gem like normal. Here's an example of how you can write a flexible `config/initializers/stripe.rb` file:
 
 ```ruby
 if Rails.env.development?
@@ -31,6 +31,8 @@ end
 
 Stripe.api_key = Rails.configuration.stripe[:secret_key]
 ```
+
+> Note: You'll need to configure `StripeEvent.signing_secret` to handle webhooks with `stripe_event`.
 
 Create an initializer at `config/initializers/fiat_stripe.rb` to set some required global variables:
 
