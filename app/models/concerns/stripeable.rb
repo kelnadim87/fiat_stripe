@@ -7,7 +7,6 @@ module Stripeable
   end
 
   def create_stripe_customer_id
-
     customer = Stripe::Customer.create(
       { description: self.name },
       api_key: self.stripe_api_key
