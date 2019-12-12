@@ -1,12 +1,17 @@
 class FiatStripe::Subscription::CreateStripeSubscriptionJob < ApplicationJob
   queue_as :default
 
-  def perform(subscribable)
+  def perform(subscribable, plan_id: nil)
 
-    if Rails.env.development?
-      plan = FiatStripe.test_default_plan_id.to_s
-    elsif Rails.env.production?
-      plan = FiatStripe.live_default_plan_id.to_s
+    if plan_id
+      # Override environment defaults with specific plan ID value
+      plan = plan_id.to_s
+    else
+      if Rails.env.development?
+        plan = FiatStripe.test_default_plan_id.to_s
+      elsif Rails.env.production?
+        plan = FiatStripe.live_default_plan_id.to_s
+      end
     end
 
     stripe_subscription = Stripe::Subscription.create(

@@ -87,8 +87,10 @@ The [`Subscribable`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/
 To create a subscription, include:
 
 ```ruby
-after_commit -> { FiatStripe::Subscription::CreateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self) }, on: :create
+after_commit -> { FiatStripe::Subscription::CreateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self, plan_id: "123abc") }, on: :create
 ```
+
+> Note: `plan_id` is optional, and will default to `nil` if not included. This will result in the environment default being used.
 
 This invokes the [`CreateStripeSubscriptionJob`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/jobs/fiat_stripe/subscription/create_stripe_subscription_job.rb), which creates a new subscription with the environment-specific plan ID you set in your initializer.
 
