@@ -90,9 +90,9 @@ To create a subscription, include:
 after_commit -> { FiatStripe::Subscription::CreateStripeSubscriptionJob.set(wait: 5.seconds).perform_later(self, plan_id: "123abc") }, on: :create
 ```
 
-> Note: `plan_id` is optional, and will default to `nil` if not included. This will result in the environment default being used.
+> Note: `plan_id` is optional, and will default to `nil` if not included.
 
-This invokes the [`CreateStripeSubscriptionJob`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/jobs/fiat_stripe/subscription/create_stripe_subscription_job.rb), which creates a new subscription with the environment-specific plan ID you set in your initializer.
+This invokes the [`CreateStripeSubscriptionJob`](https://github.com/fiatinsight/fiat_stripe/blob/master/app/jobs/fiat_stripe/subscription/create_stripe_subscription_job.rb), which creates a new subscription with the plan ID you passed or, if left out, with the environment-specific plan ID you set in your initializer.
 
 > Hint: Creating a plan for $0/mo as a baseline for creating a new subscription is helpful, so that you can instantiate the subscription prior to setting a final rate.
 
