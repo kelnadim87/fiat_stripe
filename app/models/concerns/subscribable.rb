@@ -11,6 +11,14 @@ module Subscribable
     # end
   end
 
+  def subscription_status
+    if self.subscription
+      self.subscription.status
+    else
+      nil
+    end
+  end
+
   def stripe_plan
     if self.subscription
       self.subscription.items.first.plan.id

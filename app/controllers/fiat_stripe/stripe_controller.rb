@@ -2,6 +2,7 @@ module FiatStripe
   class StripeController < ActionController::Base
 
     def create_stripe_customer_id
+      # This accepts params for a custom implementation of this method. By default, something similar runs via callback on the Stripeable concern.
       object_class = params[:object_class].constantize
       object_id = params[:object_id].to_i
 

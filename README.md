@@ -12,21 +12,27 @@ Add this line to your application's `Gemfile`:
 gem 'fiat_stripe'
 ```
 
-You'll need to configure the `stripe` and `stripe_event` gems like normal. Here's an example of how you can write `config/initializers/stripe.rb` to be flexible for testing:
+You'll need to configure the `stripe` gem like normal. Here's an example of how you can write a flexible `config/initializers/stripe.rb` file:
 
 ```ruby
 if Rails.env.development?
   Rails.configuration.stripe = {
-    publishable_key: Rails.application.credentials.development[:stripe][:publishable_key],
-    secret_key: Rails.application.credentials.development[:stripe][:secret_key]
+    :publishable_key => Rails.application.credentials.development[:stripe][:publishable_key],
+    :secret_key => Rails.application.credentials.development[:stripe][:secret_key]
   }
+  StripeEvent.signing_secret = Rails.application.credentials.development[:stripe][:signing_secret]
 elsif Rails.env.production?
   Rails.configuration.stripe = {
-    publishable_key: Rails.application.credentials.production[:stripe][:publishable_key],
-    secret_key: Rails.application.credentials.production[:stripe][:secret_key]
+    :publishable_key => Rails.application.credentials.production[:stripe][:publishable_key],
+    :secret_key => Rails.application.credentials.production[:stripe][:secret_key]
   }
+  StripeEvent.signing_secret = Rails.application.credentials.production[:stripe][:signing_secret]
 end
+
+Stripe.api_key = Rails.configuration.stripe[:secret_key]
 ```
+
+> Note: You'll need to configure `StripeEvent.signing_secret` to handle webhooks with `stripe_event`.
 
 Create an initializer at `config/initializers/fiat_stripe.rb` to set some required global variables:
 
@@ -41,6 +47,8 @@ Then mount the engine in your `routes.rb` file (either at a top level or within 
 ```ruby
 mount FiatStripe::Engine => "/fiat_stripe", as: "fiat_stripe"
 ```
+
+> You'll also need to mount `stripe_event` as explained, [here](https://github.com/integrallis/stripe_event#install).
 
 To include all the [helpers](https://github.com/fiatinsight/fiat_stripe/tree/master/app/helpers), add this line in your `ApplicationController`:
 
