@@ -11,7 +11,7 @@ module Stripeable
       { description: self.name },
       api_key: self.stripe_api_key
     )
-    self.update_attributes(stripe_customer_id: customer.id)
+    self.update(stripe_customer_id: customer.id)
   end
 
   def update_stripe
@@ -26,7 +26,7 @@ module Stripeable
         customer = Stripe::Customer.retrieve({id: self.stripe_customer_id}, api_key: self.stripe_api_key)
         customer.sources.retrieve(customer.sources.data.first.id).delete
         customer.save
-        self.update_attributes(remove_card: nil, stripe_card_token: nil)
+        self.update(remove_card: nil, stripe_card_token: nil)
       end
     # See: https://stripe.com/docs/api/errors/handling
     rescue Stripe::CardError => e

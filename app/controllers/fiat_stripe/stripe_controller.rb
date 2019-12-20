@@ -13,7 +13,7 @@ module FiatStripe
         api_key: object_class.find(object_id).stripe_api_key
       )
 
-      object_class.find(object_id).update_attributes(stripe_customer_id: customer.id)
+      object_class.find(object_id).update(stripe_customer_id: customer.id)
       redirect_back(fallback_location: nil, notice: 'Your payment profile was created.')
     end
 
