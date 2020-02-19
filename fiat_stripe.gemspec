@@ -20,5 +20,6 @@ Gem::Specification.new do |s|
   s.add_dependency "stripe"
   s.add_dependency "stripe_event"
 
-  # s.add_development_dependency "sqlite3"
+  # s.add_development_dependency "mysql2"
+  s.add_development_dependency "sqlite3"
 end
