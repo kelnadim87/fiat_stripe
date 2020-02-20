@@ -1,9 +1,10 @@
 require 'test_helper'
 
-# module Stripeable
-#   class SubscriptionTest < ActiveSupport::TestCase
-#     # test "the truth" do
-#     #   assert true
-#     # end
-#   end
-# end
+module FiatStripe
+  class Concerns::Stripeable < ActiveSupport::TestCase
+    test "should create Stripe customer" do
+      customer = Customer.create(name: "Test customer")
+      assert customer.save, "Customer didn't save"
+    end
+  end
+end
