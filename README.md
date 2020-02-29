@@ -137,9 +137,11 @@ end
 
 ### Invoices
 
+You can generate and manage local invoices using the `Invoice` and `InvoiceItem` classes. This allows for a mixed invoice processing workflow (e.g., handling check payments alongside automatic payment) and enables synchronization with Stripe payments via the `stripe_event` gem / Stripe webhooks API.
+
 #### Configuration
 
-You can generate and manage local invoices using the `Invoice` and `InvoiceItem` classes. Add the following to any classes in your main application that you want to handle invoices for:
+Add the following to any classes in your main application that you want to handle invoices for:
 
 ```ruby
 has_many :fi_invoices, as: :invoiceable, dependent: :destroy, class_name: "FiatStripe::Invoice"
@@ -168,6 +170,55 @@ Saving or removing a new item will recalculate the invoice total. You can pass i
 #### Notices
 
 When an invoice is saved, its status is checked. If the invoice is moved to `sent` and doesn't have a sent date, `FiatStripe::Invoice::SendNoticeJob` adds the date, and issues an email notification with the correct information. When an invoice is marked `received`, the job runs and similarly adds a received date and sends a receipt email.
+
+#### Stripe integration
+
+You can choose what actions you want to perform on your local invoices for Stripe payments using the Stripe webhooks API. Add something like the following to your application's `config/initializers/stripe.rb` file:
+
+```ruby
+StripeEvent.configure do |events|
+
+  # Create invoices for automatic subscriptions (and try to mark them paid)
+  events.subscribe 'invoice.created' do |event|
+    # Note: ActiveJob can't serialize the `event` object, so break it apart
+    stripe_subscription_id = event.data.object.subscription
+    amount = event.data.object.amount_due / 100
+    paid_status = event.data.object.paid
+    stripe_charge_id = event.data.object.charge
+    stripe_invoice_id = event.data.object.id
+
+    # Figure this out...
+    # if Subscription.find_by(stripe_subscription_id: stripe_subscription_id).support_plan # Otherwise there's no value
+    #   FiatStripe::Invoice::CreateStripeSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_subscription_id, amount, paid_status, stripe_charge_id, stripe_invoice_id)
+    # end
+  end
+
+  # Mark invoice paid for automatic subscription
+  events.subscribe 'invoice.payment_succeeded' do |event|
+    # This listen for Stripe invoices being paid and maps them to unpaid invoices, in case immediate payment failed
+    stripe_invoice_id = event.data.object.id
+    stripe_charge_id = event.data.object.charge
+
+    if Invoice.find_by(stripe_invoice_id: stripe_invoice_id)
+      FiatStripe::Invoice::UpdateStripeSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_invoice_id, stripe_charge_id)
+    end
+  end
+
+  # Failed charges
+  events.subscribe 'charge.failed' do |event|
+    customer_id = event.data.object.customer
+    failure_code = event.data.object.failure_code
+    failure_message = event.data.object.failure_message
+
+    FiatStripe::Charge::ReportFailedChargeJob.set(wait: 10.seconds).perform_later(customer_id, failure_code, failure_message)
+  end
+
+  # Successful charges
+  events.subscribe 'charge.succeeded' do |event|
+    # code
+  end
+end
+```
 
 ## Development
 
