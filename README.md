@@ -40,6 +40,11 @@ Create an initializer at `config/initializers/fiat_stripe.rb` to set some requir
 FiatStripe.live_default_plan_id = "plan_id"
 FiatStripe.test_default_plan_id = "plan_id"
 FiatStripe.trial_period_days = 0
+FiatStripe.postmark_api_token = "postmark_api_token"
+FiatStripe.from_email_address = "email@email.com"
+FiatStripe.invoice_notice_email_template_id = "postmark_template_id"
+FiatStripe.invoice_reminder_email_template_id = "postmark_template_id"
+FiatStripe.invoice_receipt_email_template_id = "postmark_template_id"
 ```
 
 Then mount the engine in your `routes.rb` file (either at a top level or within a namespace):
@@ -129,6 +134,40 @@ For example, a one-time payment form could be set up like this:
   = f.button :button, "Submit", type: :submit, class: 'btn', data: { confirm: "Are you sure you want to complete this one-time payment?" }
 end
 ```
+
+### Invoices
+
+#### Configuration
+
+You can generate and manage local invoices using the `Invoice` and `InvoiceItem` classes. Add the following to any classes in your main application that you want to handle invoices for:
+
+```ruby
+has_many :fi_invoices, as: :invoiceable, dependent: :destroy, class_name: "FiatStripe::Invoice"
+```
+
+You'll need to make sure any `invoiceable` class has a `name` attribute / method. You'll also need to set up an `email_recipients` method on each `invoiceable` class to provide an array of email addresses for invoice notifications, as well as an `invoice_url` method. For example:
+
+```ruby
+def email_recipients
+  User.where(id: [OrganizationUser.where(organization_id: self.id, billing: 1).pluck(:user_id)]).pluck(:email)
+end
+
+def invoice_url(invoice_id)
+  "https://yourwebsite.com/customer/#{self.id}/invoices/#{invoice_id}"
+end
+```
+
+Classes you want to add to invoice items (e.g., products) should include:
+
+```ruby
+has_many :fi_invoice_items, as: :invoice_itemable, dependent: :destroy, class_name: "FiatStripe::InvoiceItem"
+```
+
+Saving or removing a new item will recalculate the invoice total. You can pass in custom information to the item `description` field, based on the type of thing you're itemizing.
+
+#### Notices
+
+When an invoice is saved, its status is checked. If the invoice is moved to `sent` and doesn't have a sent date, `FiatStripe::Invoice::SendNoticeJob` adds the date, and issues an email notification with the correct information. When an invoice is marked `received`, the job runs and similarly adds a received date and sends a receipt email.
 
 ## Development
 

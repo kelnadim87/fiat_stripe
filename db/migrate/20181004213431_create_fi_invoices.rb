@@ -10,6 +10,7 @@ class CreateFiInvoices < ActiveRecord::Migration[6.0]
       t.text :description
       t.text :notes
       t.integer :status
+      t.date :due_date
       t.date :sent_date
       t.date :received_date
       t.string :stripe_invoice_id

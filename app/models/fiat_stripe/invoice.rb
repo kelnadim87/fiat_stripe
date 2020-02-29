@@ -5,12 +5,9 @@ module FiatStripe
     self.table_name = "fi_invoices"
 
     belongs_to :invoiceable, polymorphic: true
-
     has_many :invoice_items
 
     validates :invoiceable, presence: true
-
-    # scope :seen, lambda { where(viewed: 1) }
 
     enum status: {
       pending: 0,
@@ -19,8 +16,8 @@ module FiatStripe
     }
 
     after_create :generate_reference_number
-    after_commit -> { FiatStripe::Invoice::SendNoticeJob.set(wait: 5.seconds).perform_later(self, FiatStripe.email_template_id) }, on: :update
-    # after_commit :send_receipt, on: :update
+    after_commit -> { FiatStripe::Invoice::SendNoticeJob.set(wait: 5.seconds).perform_later(self, self.invoiceable.email_recipients, self.invoiceable.invoice_url(self.id)) }, on: :update
+    # QUESTION: Would it work to add a conditional here for the above job to only run if the invoice does not have a sent or received date -- instead of checking for that in the job?
 
     def generate_reference_number
       o = [('A'..'Z'), ('0'..'9')].map { |i| i.to_a }.flatten
