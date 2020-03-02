@@ -223,13 +223,15 @@ StripeEvent.configure do |events|
     end
   end
 
-  # Failed charges
+  # Report failed charges
   events.subscribe 'charge.failed' do |event|
     customer_id = event.data.object.customer
     failure_code = event.data.object.failure_code
     failure_message = event.data.object.failure_message
 
-    FiatStripe::Charge::ReportFailedChargeJob.set(wait: 10.seconds).perform_later(customer_id, failure_code, failure_message)
+    # code
+
+    # TODO: Make this work w/ email option / args: FiatStripe::Charge::ReportFailedChargeJob.set(wait: 10.seconds).perform_later(customer_id, failure_code, failure_message)
   end
 
   # Successful charges
