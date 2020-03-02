@@ -187,7 +187,7 @@ StripeEvent.configure do |events|
     stripe_charge_id = event.data.object.charge
     stripe_invoice_id = event.data.object.id
 
-    # 1. find Stripe subscription by ID
+    # 1. Find Stripe subscription by ID
 
     subscription = Stripe::Subscription.list(stripe_subscription_id, api_key: Rails.configuration.stripe[:secret_key])
 
@@ -198,10 +198,10 @@ StripeEvent.configure do |events|
 
     # 3. Create invoice for Subscribable object
 
-    # description = # Set a custom description here (optional)
+    # description = # Set a custom invoice description here (optional)
     description ||= nil
-    
-    # invoice_items = # Set invoice items here (optional)
+
+    # invoice_items = # Add invoice items here (optional)
     # E.g.:
     # { class_name: "Product",
     #   id: subscribable.product.id,
@@ -213,14 +213,13 @@ StripeEvent.configure do |events|
     FiatStripe::Invoice::CreateSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_subscription_id, amount, paid_status, stripe_charge_id, stripe_invoice_id, description, invoice_items)
   end
 
-  # Mark invoice paid for automatic subscription
+  # Listen for paid invoices (e.g., failed, delayed) and mark them off
   events.subscribe 'invoice.payment_succeeded' do |event|
-    # This listen for Stripe invoices being paid and maps them to unpaid invoices, in case immediate payment failed
     stripe_invoice_id = event.data.object.id
     stripe_charge_id = event.data.object.charge
 
-    if Invoice.find_by(stripe_invoice_id: stripe_invoice_id)
-      FiatStripe::Invoice::UpdateStripeSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_invoice_id, stripe_charge_id)
+    if FiatStripe::Invoice.find_by(stripe_invoice_id: stripe_invoice_id)
+      FiatStripe::Invoice::UpdateSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_invoice_id, stripe_charge_id)
     end
   end
 
