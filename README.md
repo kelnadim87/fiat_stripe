@@ -187,10 +187,30 @@ StripeEvent.configure do |events|
     stripe_charge_id = event.data.object.charge
     stripe_invoice_id = event.data.object.id
 
-    # Figure this out...
-    # if Subscription.find_by(stripe_subscription_id: stripe_subscription_id).support_plan # Otherwise there's no value
-    #   FiatStripe::Invoice::CreateStripeSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_subscription_id, amount, paid_status, stripe_charge_id, stripe_invoice_id)
-    # end
+    # 1. find Stripe subscription by ID
+
+    subscription = Stripe::Subscription.list(stripe_subscription_id, api_key: Rails.configuration.stripe[:secret_key])
+
+    # 2. Find Subscribable object by Stripe customer ID
+
+    stripe_customer_id = subscription.customer
+    subscribable = Organization.find_by(stripe_customer_id: stripe_customer_id) # Change to whatever your application's Subscribable object is
+
+    # 3. Create invoice for Subscribable object
+
+    # description = # Set a custom description here (optional)
+    description ||= nil
+    
+    # invoice_items = # Set invoice items here (optional)
+    # E.g.:
+    # { class_name: "Product",
+    #   id: subscribable.product.id,
+    #   sub_total: subscribable.product.monthly_rate,
+    #   description: "Monthly product description"
+    # }
+    invoice_items ||= nil
+
+    FiatStripe::Invoice::CreateSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_subscription_id, amount, paid_status, stripe_charge_id, stripe_invoice_id, description, invoice_items)
   end
 
   # Mark invoice paid for automatic subscription
