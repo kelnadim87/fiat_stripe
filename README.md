@@ -40,6 +40,11 @@ Create an initializer at `config/initializers/fiat_stripe.rb` to set some requir
 FiatStripe.live_default_plan_id = "plan_id"
 FiatStripe.test_default_plan_id = "plan_id"
 FiatStripe.trial_period_days = 0
+FiatStripe.postmark_api_token = "postmark_api_token"
+FiatStripe.from_email_address = "email@email.com"
+FiatStripe.invoice_notice_email_template_id = "postmark_template_id"
+FiatStripe.invoice_reminder_email_template_id = "postmark_template_id"
+FiatStripe.invoice_receipt_email_template_id = "postmark_template_id"
 ```
 
 Then mount the engine in your `routes.rb` file (either at a top level or within a namespace):
@@ -127,6 +132,112 @@ For example, a one-time payment form could be set up like this:
   = f.input :amount
   = f.input :description
   = f.button :button, "Submit", type: :submit, class: 'btn', data: { confirm: "Are you sure you want to complete this one-time payment?" }
+end
+```
+
+### Invoices
+
+You can generate and manage local invoices using the `Invoice` and `InvoiceItem` classes. This allows for a mixed invoice processing workflow (e.g., handling check payments alongside automatic payment) and enables synchronization with Stripe payments via the `stripe_event` gem / Stripe webhooks API.
+
+#### Configuration
+
+Add the following to any classes in your main application that you want to handle invoices for:
+
+```ruby
+has_many :fi_invoices, as: :invoiceable, dependent: :destroy, class_name: "FiatStripe::Invoice"
+```
+
+You'll need to make sure any `invoiceable` class has a `name` attribute / method. You'll also need to set up an `email_recipients` method on each `invoiceable` class to provide an array of email addresses for invoice notifications, as well as an `invoice_url` method. For example:
+
+```ruby
+def email_recipients
+  User.where(id: [OrganizationUser.where(organization_id: self.id, billing: 1).pluck(:user_id)]).pluck(:email)
+end
+
+def invoice_url(invoice_id)
+  "https://yourwebsite.com/customer/#{self.id}/invoices/#{invoice_id}"
+end
+```
+
+Classes you want to add to invoice items (e.g., products) should include:
+
+```ruby
+has_many :fi_invoice_items, as: :invoice_itemable, dependent: :destroy, class_name: "FiatStripe::InvoiceItem"
+```
+
+Saving or removing a new item will recalculate the invoice total. You can pass in custom information to the item `description` field, based on the type of thing you're itemizing.
+
+#### Notices
+
+When an invoice is saved, its status is checked. If the invoice is moved to `sent` and doesn't have a sent date, `FiatStripe::Invoice::SendNoticeJob` adds the date, and issues an email notification with the correct information. When an invoice is marked `received`, the job runs and similarly adds a received date and sends a receipt email.
+
+#### Stripe integration
+
+You can choose what actions you want to perform on your local invoices for Stripe payments using the Stripe webhooks API. Add something like the following to your application's `config/initializers/stripe.rb` file:
+
+```ruby
+StripeEvent.configure do |events|
+
+  # Create invoices for automatic subscriptions (and try to mark them paid)
+  events.subscribe 'invoice.created' do |event|
+    # Note: ActiveJob can't serialize the `event` object, so break it apart
+    stripe_subscription_id = event.data.object.subscription
+    amount = event.data.object.amount_due / 100
+    paid_status = event.data.object.paid
+    stripe_charge_id = event.data.object.charge
+    stripe_invoice_id = event.data.object.id
+
+    # 1. Find Stripe subscription by ID
+
+    subscription = Stripe::Subscription.list(stripe_subscription_id, api_key: Rails.configuration.stripe[:secret_key])
+
+    # 2. Find Subscribable object by Stripe customer ID
+
+    stripe_customer_id = subscription.customer
+    subscribable = Organization.find_by(stripe_customer_id: stripe_customer_id) # Change to whatever your application's Subscribable object is
+
+    # 3. Create invoice for Subscribable object
+
+    # description = # Set a custom invoice description here (optional)
+    description ||= nil
+
+    # invoice_items = # Add invoice items here (optional)
+    # E.g.:
+    # { class_name: "Product",
+    #   id: subscribable.product.id,
+    #   sub_total: subscribable.product.monthly_rate,
+    #   description: "Monthly product description"
+    # }
+    invoice_items ||= nil
+
+    FiatStripe::Invoice::CreateSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_subscription_id, amount, paid_status, stripe_charge_id, stripe_invoice_id, description, invoice_items)
+  end
+
+  # Listen for paid invoices (e.g., failed, delayed) and mark them off
+  events.subscribe 'invoice.payment_succeeded' do |event|
+    stripe_invoice_id = event.data.object.id
+    stripe_charge_id = event.data.object.charge
+
+    if FiatStripe::Invoice.find_by(stripe_invoice_id: stripe_invoice_id)
+      FiatStripe::Invoice::UpdateSubscriptionInvoiceJob.set(wait: 10.seconds).perform_later(stripe_invoice_id, stripe_charge_id)
+    end
+  end
+
+  # Report failed charges
+  events.subscribe 'charge.failed' do |event|
+    customer_id = event.data.object.customer
+    failure_code = event.data.object.failure_code
+    failure_message = event.data.object.failure_message
+
+    # code
+
+    # TODO: Make this work w/ email option / args: FiatStripe::Charge::ReportFailedChargeJob.set(wait: 10.seconds).perform_later(customer_id, failure_code, failure_message)
+  end
+
+  # Successful charges
+  events.subscribe 'charge.succeeded' do |event|
+    # code
+  end
 end
 ```
 
