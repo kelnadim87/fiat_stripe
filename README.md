@@ -15,6 +15,9 @@ gem 'fiat_stripe'
 You'll need to configure the `stripe` gem like normal. Here's an example of how you can write a flexible `config/initializers/stripe.rb` file:
 
 ```ruby
+require 'stripe'
+require 'stripe_event'
+
 if Rails.env.development?
   Rails.configuration.stripe = {
     :publishable_key => Rails.application.credentials.development[:stripe][:publishable_key],
