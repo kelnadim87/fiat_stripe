@@ -12,7 +12,7 @@ Add this line to your application's `Gemfile`:
 gem 'fiat_stripe'
 ```
 
-You'll need to configure the `stripe` gem like normal. Here's an example of how you can write a flexible `config/initializers/stripe.rb` file:
+The gem comes with a default [initializer](https://github.com/fiatinsight/fiat_stripe/blob/master/config/initializers/stripe.rb); but you can write your own, more flexible one in your application at `config/initializers/stripe.rb`. For example:
 
 ```ruby
 require 'stripe'
