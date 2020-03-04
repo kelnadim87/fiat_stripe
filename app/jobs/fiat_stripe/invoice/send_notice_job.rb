@@ -1,13 +1,14 @@
 class FiatStripe::Invoice::SendNoticeJob < FiatStripe::ApplicationJob
   include ActionView::Helpers::TextHelper
+  include ActionView::Helpers::NumberHelper
   queue_as :default
 
   def perform(invoice, email_recipients, invoice_url)
 
-    if invoice.saved_change_to_status? && invoice.sent? && !invoice.sent_date
+    if invoice.sent? && !invoice.sent_date
       invoice.update(sent_date: Date.today)
       email_template_id = FiatStripe.invoice_notice_email_template_id
-    elsif invoice.saved_change_to_status? && invoice.received? && !invoice.received_date
+    elsif invoice.received? && !invoice.received_date
       invoice.update(received_date: Date.today)
       email_template_id = FiatStripe.invoice_receipt_email_template_id
     end
