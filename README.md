@@ -12,6 +12,8 @@ Add this line to your application's `Gemfile`:
 gem 'fiat_stripe'
 ```
 
+And then run `rake db:migrate` to set up the gem's database tables.
+
 The gem comes with a default [initializer](https://github.com/fiatinsight/fiat_stripe/blob/master/config/initializers/stripe.rb); but you can write your own, more flexible one in your application at `config/initializers/stripe.rb`. For example:
 
 ```ruby
@@ -37,7 +39,7 @@ Stripe.api_key = Rails.configuration.stripe[:secret_key]
 
 > Note: You'll need to configure `StripeEvent.signing_secret` to handle webhooks with `stripe_event`.
 
-Create an initializer at `config/initializers/fiat_stripe.rb` to set some required global variables:
+You'll also need to set some required variables:
 
 ```ruby
 FiatStripe.live_default_plan_id = "plan_id"
