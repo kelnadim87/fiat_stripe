@@ -1,4 +1,5 @@
 class FiatStripe::Invoice::SendNoticeJob < FiatStripe::ApplicationJob
+  # Assumes require `postmark` is is true in application
   include ActionView::Helpers::TextHelper
   include ActionView::Helpers::NumberHelper
   queue_as :default
