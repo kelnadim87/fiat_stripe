@@ -42,14 +42,16 @@ Stripe.api_key = Rails.configuration.stripe[:secret_key]
 You'll also need to set some required variables:
 
 ```ruby
-FiatStripe.live_default_plan_id = "plan_id"
-FiatStripe.test_default_plan_id = "plan_id"
-FiatStripe.trial_period_days = 0
-FiatStripe.postmark_api_token = "postmark_api_token"
-FiatStripe.from_email_address = "email@email.com"
-FiatStripe.invoice_notice_email_template_id = "postmark_template_id"
-FiatStripe.invoice_reminder_email_template_id = "postmark_template_id"
-FiatStripe.invoice_receipt_email_template_id = "postmark_template_id"
+FiatStripe.configure do |config|
+  config.live_default_plan_id = "plan_id"
+  config.test_default_plan_id = "plan_id"
+  config.trial_period_days = 0
+  config.postmark_api_token = Rails.application.credentials.postmark[:api_token]
+  config.from_email_address = "email@email.com"
+  config.invoice_notice_email_template_id = "postmark_template_id"
+  config.invoice_reminder_email_template_id = "postmark_template_id"
+  config.invoice_receipt_email_template_id = "postmark_template_id"
+end
 ```
 
 Then mount the engine in your `routes.rb` file (either at a top level or within a namespace):

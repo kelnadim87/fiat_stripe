@@ -8,15 +8,15 @@ class FiatStripe::Subscription::CreateStripeSubscriptionJob < ApplicationJob
       plan = plan_id.to_s
     else
       if Rails.env.development?
-        plan = FiatStripe.test_default_plan_id.to_s
+        plan = FiatStripe.configuration.test_default_plan_id.to_s
       elsif Rails.env.production?
-        plan = FiatStripe.live_default_plan_id.to_s
+        plan = FiatStripe.configuration.live_default_plan_id.to_s
       end
     end
 
     stripe_subscription = Stripe::Subscription.create(
       { customer: subscribable.stripe_customer_id,
-        trial_period_days: FiatStripe.trial_period_days,
+        trial_period_days: FiatStripe.configuration.trial_period_days,
         items: [
           { plan: plan }
         ]
