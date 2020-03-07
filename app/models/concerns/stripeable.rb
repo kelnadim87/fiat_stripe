@@ -2,19 +2,13 @@ module Stripeable
   extend ActiveSupport::Concern
 
   included do
-    after_commit :create_stripe_customer_id, on: :create
-    before_commit :update_stripe, on: :update
+    after_commit -> { FiatStripe::Customer::CreateCustomerIdJob.set(wait: 5.seconds).perform_later(self) }, on: :create
+    # before_commit -> { FiatStripe::Customer::UpdateCustomerJob.set(wait: 5.seconds).perform_later(self) }, on: :update
+    before_commit :update_payment_method, on: :update
   end
 
-  def create_stripe_customer_id
-    customer = Stripe::Customer.create(
-      { description: self.name },
-      api_key: self.stripe_api_key
-    )
-    self.update(stripe_customer_id: customer.id)
-  end
-
-  def update_stripe
+  def update_payment_method
+    # Move this to a job?
     # TODO: Update this method to work w/ bank accounts
     begin
       if self.saved_change_to_stripe_card_token? && self.stripe_card_token? && self.stripe_customer_id?
