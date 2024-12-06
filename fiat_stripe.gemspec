@@ -16,8 +16,8 @@ Gem::Specification.new do |s|
 
   s.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
 
-  s.add_dependency "rails", "~> 6.0.2", ">= 6.0.2.1"
-  s.add_dependency "stripe"
+  s.add_dependency "rails", ">= 6.0.2.1", "<= 8.0"
+  s.add_dependency "stripe", '< 9'
   s.add_dependency "stripe_event"
   s.add_dependency "postmark-rails"
   s.add_dependency "sidekiq"

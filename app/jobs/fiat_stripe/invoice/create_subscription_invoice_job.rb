@@ -1,4 +1,4 @@
-class Invoice::CreateSubscriptionInvoiceJob < ApplicationJob
+class FiatStripe::Invoice::CreateSubscriptionInvoiceJob < ApplicationJob
   queue_as :default
 
   def perform(stripe_subscription_id, amount, paid_status, stripe_charge_id, stripe_invoice_id, description: nil, invoice_items: nil)

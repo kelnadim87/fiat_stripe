@@ -1,4 +1,4 @@
-class Invoice::UpdateSubscriptionInvoiceJob < ApplicationJob
+class FiatStripe::Invoice::UpdateSubscriptionInvoiceJob < ApplicationJob
   queue_as :default
 
   def perform(stripe_invoice_id, stripe_charge_id)

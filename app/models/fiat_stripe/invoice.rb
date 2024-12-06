@@ -9,7 +9,7 @@ module FiatStripe
 
     validates :invoiceable, :due_date, presence: true
 
-    enum status: {
+    enum :status, {
       pending: 0,
       sent: 1,
       received: 2
