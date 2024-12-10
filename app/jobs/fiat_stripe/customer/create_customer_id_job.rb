@@ -2,6 +2,8 @@ class FiatStripe::Customer::CreateCustomerIdJob < ApplicationJob
   queue_as :default
 
   def perform(stripeable)
+    return unless stripeable.stripe_customer_id.nil?
+
     customer = Stripe::Customer.create(
       { description: stripeable.name },
       api_key: stripeable.stripe_api_key
