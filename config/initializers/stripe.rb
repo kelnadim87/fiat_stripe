@@ -1,13 +1,13 @@
 require 'stripe'
 require 'stripe_event'
 
-if Rails.env.development?
+if Rails.env.development? || Rails.env.staging?
   Rails.configuration.stripe = {
     :publishable_key => Rails.application.credentials.development[:stripe][:publishable_key],
     :secret_key => Rails.application.credentials.development[:stripe][:secret_key]
   }
   StripeEvent.signing_secret = Rails.application.credentials.development[:stripe][:signing_secret]
-elsif Rails.env.production?
+elsif
   Rails.configuration.stripe = {
     :publishable_key => Rails.application.credentials.production[:stripe][:publishable_key],
     :secret_key => Rails.application.credentials.production[:stripe][:secret_key]
